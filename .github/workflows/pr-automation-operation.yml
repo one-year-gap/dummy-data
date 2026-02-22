@@ -13,5 +13,5 @@ jobs:
       JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
       
-      SLACK_WEBHOOK_BE: ${{ secrets.SLACK_WEBHOOK_INFRA }}
+      SLACK_WEBHOOK_BE: ${{ secrets.SLACK_WEBHOOK_BE }}
       SLACK_WEBHOOK_DEFAULT: ${{ secrets.SLACK_WEBHOOK_DEFAULT }}
