@@ -104,12 +104,11 @@ def run_generation(target_users):
 
     # 1. 주소 데이터 생성 (가족 공유를 위해 회원 수의 80% 생성)
     num_addresses = max(1, int(target_users * 0.8))
-    addresses = []
     seen_address_key = set()  # (province, city, street_address) 유니크 제약 준수
     print(" - 주소 데이터 생성 중...")
     with open(os.path.join(dir_path, 'address.csv'), 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(['address_id', 'province', 'city', 'street_address', 'postal_code', 'created_at', 'updated_at'])
+        writer.writerow(['province', 'city', 'street_address', 'postal_code', 'created_at', 'updated_at'])
         
         for i in range(1, num_addresses + 1):
             while True:
@@ -123,9 +122,8 @@ def run_generation(target_users):
                     break
             postal = f"{random.randint(10000, 69999)}"
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            addresses.append(i) # address_id 저장
-            writer.writerow([i, prov, city, street, postal, now_str, now_str])
+         
+            writer.writerow([prov, city, street, postal, now_str, now_str])
 
     # 2. 회원 데이터 생성 (암호화 적용)
     print(" - 회원 데이터 생성 중...")
@@ -137,7 +135,7 @@ def run_generation(target_users):
     
     with open(os.path.join(dir_path, 'member.csv'), 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(['member_id', 'address_id', 'provider_id', 'email', 'password', 'name', 'phone', 'birth_date', 'gender', 'join_date', 'created_at', 'updated_at', 'status_updated_at', 'status', 'type', 'role', 'membership'])
+        writer.writerow(['address_id', 'provider_id', 'email', 'password', 'name', 'phone', 'birth_date', 'gender', 'join_date', 'created_at', 'updated_at', 'status_updated_at', 'status', 'type', 'role', 'membership'])
         
         for member_id in range(1, target_users + 1):
             # ----------------------------------------------------
@@ -199,7 +197,7 @@ def run_generation(target_users):
             membership = ''
             
             if role == 'CUSTOMER':
-                address_id = random.choice(addresses)
+                address_id = random.randint(1, num_addresses)
                 
                 while True:
                     raw_phone = f"010-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}"
@@ -228,40 +226,23 @@ def run_generation(target_users):
             # CSV 쓰기
             # ----------------------------------------------------
             writer.writerow([
-                member_id, address_id, provider_id, email, hashed_password, 
+                address_id, provider_id, email, hashed_password, 
                 encrypted_name, encrypted_phone, birth_date, gender,
                 join_date, now_str, now_str, now_str, status, signup_type, role, membership
             ])
-            
-            # 해당 회원의 구독 상품 결정 로직
-            my_products = []
-            my_products.append(random.choice(MOBILE_IDS)) # 모바일 1개 필수
-            
-            if random.random() < 0.2: my_products.append(random.choice(TAB_WATCH_IDS))
-            if random.random() < 0.2: my_products.append(random.choice(IPTV_IDS))
-            if random.random() < 0.2: my_products.append(random.choice(INTERNET_IDS))
-            
-            num_addons = random.randint(0, 4)
-            my_products.extend(random.sample(ADDON_IDS, num_addons))
-            
-            # 구독 시작일 (가입일 ~ 오늘 사이 언제든 가능)
-            sub_start = generate_random_date(join_date, date.today())
-            
-            subscriptions_to_create.append((member_id, my_products, sub_start))
 
     # 3. 구독 및 사용량 데이터 생성
     print(" - 구독 및 월별 사용량 데이터 생성 중...")
     sub_id = 1
-    usage_id = 1
     
     with open(os.path.join(dir_path, 'subscription.csv'), 'w', newline='', encoding='utf-8') as f_sub, \
          open(os.path.join(dir_path, 'usage_monthly.csv'), 'w', newline='', encoding='utf-8') as f_usage:
          
         sub_writer = csv.writer(f_sub)
-        sub_writer.writerow(['subscription_id', 'member_id', 'product_id', 'start_date', 'end_date', 'status', 'created_at', 'updated_at'])
+        sub_writer.writerow(['member_id', 'product_id', 'start_date', 'end_date', 'status', 'created_at', 'updated_at'])
         
         usage_writer = csv.writer(f_usage)
-        usage_writer.writerow(['usage_id', 'subscription_id', 'yyyymm', 'usage_details', 'created_at', 'updated_at'])
+        usage_writer.writerow(['subscription_id', 'yyyymm', 'usage_details', 'created_at', 'updated_at'])
         
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         recent_months = get_last_12_months()
@@ -272,7 +253,7 @@ def run_generation(target_users):
             
             for p_id in p_ids:
                 # 3-1. 구독 데이터 작성
-                sub_writer.writerow([sub_id, member_id, p_id, start_date_str, '', True, now_str, now_str])
+                sub_writer.writerow([member_id, p_id, start_date_str, '', True, now_str, now_str])
                 
                 # 3-2. 사용량 데이터 작성 (ADDON은 제외)
                 if p_id not in ADDON_IDS:
@@ -314,8 +295,7 @@ def run_generation(target_users):
                             }
 
                         usage_json = json.dumps(usage_details)
-                        usage_writer.writerow([usage_id, sub_id, yyyymm, usage_json, now_str, now_str])
-                        usage_id += 1
+                        usage_writer.writerow([sub_id, yyyymm, usage_json, now_str, now_str])
                         
                 sub_id += 1
                 
