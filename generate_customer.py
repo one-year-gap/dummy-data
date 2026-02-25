@@ -26,7 +26,7 @@ DEFAULT_PASSWORD_HASH = bcrypt.hashpw(b"1234", bcrypt.gensalt()).decode('utf-8')
 
 # --- 설정 및 상수 ---
 SIZES = [10, 100, 1000, 10000, 50000, 100000]
-OUTPUT_DIR = "dummy_data"
+OUTPUT_DIR = "dummy_data_customer"
 
 # 이름 생성을 위한 한국인 성/이름 풀
 LAST_NAMES = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '전', '홍']
@@ -129,7 +129,6 @@ def run_generation(target_users):
     print(" - 회원 데이터 생성 중...")
     used_emails = set()
     used_phones = set()
-    used_providers = set() # 구글 소셜 로그인 ID 중복 방지용
     
     subscriptions_to_create = [] # (member_id, [product_ids], start_date)
     
@@ -138,9 +137,7 @@ def run_generation(target_users):
         writer.writerow(['address_id', 'provider_id', 'email', 'password', 'name', 'phone', 'birth_date', 'gender', 'join_date', 'created_at', 'updated_at', 'status_updated_at', 'status', 'type', 'role', 'membership'])
         
         for member_id in range(1, target_users + 1):
-            # ----------------------------------------------------
             # [A] 기본 정보 생성
-            # ----------------------------------------------------
             raw_name = random.choice(LAST_NAMES) + random.choice(FIRST_NAMES)
             encrypted_name = encrypt_aes(raw_name)
             
@@ -153,78 +150,40 @@ def run_generation(target_users):
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             join_date = get_weighted_join_date()
 
-            # ----------------------------------------------------
-            # [B] 역할(Role) 결정 (CUSTOMER: 98.9%, COUNSELOR: 1%, ADMIN: 0.1%)
-            # ----------------------------------------------------
-            role = random.choices(['CUSTOMER', 'COUNSELOR', 'ADMIN'], weights=[98.9, 1.0, 0.1], k=1)[0]
-            
-            # ----------------------------------------------------
-            # [C] 상태(Status) 결정 (ACTIVE가 대부분, 나머지는 소수)
-            # ----------------------------------------------------
-            status = random.choices(['ACTIVE', 'PROCESSING', 'BANNED', 'DELETED'], weights=[90, 5, 3, 2], k=1)[0]
-
-            # ----------------------------------------------------
-            # [D] 가입 유형(Type) 및 인증 정보(Auth) 설정
-            # DDL: (type = 'FORM' AND password IS NOT NULL) OR (type <> 'FORM' AND provider_id IS NOT NULL)
-            # ----------------------------------------------------
-            # 관리자와 상담사는 무조건 FORM 가입으로 고정, 고객만 구글 로그인 20% 확률 부여
+            # 💡 [B] 상태, 역할, 가입유형 완전 고정!
+            role = 'CUSTOMER'
+            status = 'ACTIVE'
             signup_type = 'FORM'
-            if role == 'CUSTOMER':
-                signup_type = random.choices(['FORM', 'GOOGLE'], weights=[80, 20], k=1)[0]
+            provider_id = '' # 폼 가입이므로 소셜 ID는 무조건 빈칸
+            hashed_password = DEFAULT_PASSWORD_HASH # 비밀번호는 무조건 1234
             
-            provider_id = ''
-            hashed_password = ''
+            # [C] 고객 필수 정보 100% 채우기
+            address_id = random.randint(1, num_addresses)
             
-            if signup_type == 'FORM':
-                hashed_password = DEFAULT_PASSWORD_HASH
-            else:
-                # GOOGLE 가입
-                while True:
-                    pid = f"google_{random.randint(10000000, 99999999)}"
-                    if pid not in used_providers:
-                        used_providers.add(pid)
-                        provider_id = pid
-                        break
+            while True:
+                raw_phone = f"010-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}"
+                if raw_phone not in used_phones:
+                    used_phones.add(raw_phone)
+                    break
+            encrypted_phone = encrypt_aes(raw_phone)
+            
+            birth_date = generate_random_date(date(1960, 1, 1), date(2010, 12, 31))
+            gender = random.choice(['M', 'F'])
+            membership = random.choices(['VVIP', 'VIP', 'GOLD', 'BASIC'], weights=[5, 10, 35, 50], k=1)[0]
+            
+            # [D] 요금제(구독) 생성 (100% 고객이므로 조건문 없이 무조건 생성)
+            my_products = []
+            my_products.append(random.choice(MOBILE_IDS)) # 모바일 1개 필수
+            if random.random() < 0.2: my_products.append(random.choice(TAB_WATCH_IDS))
+            if random.random() < 0.2: my_products.append(random.choice(IPTV_IDS))
+            if random.random() < 0.2: my_products.append(random.choice(INTERNET_IDS))
+            num_addons = random.randint(0, 4)
+            my_products.extend(random.sample(ADDON_IDS, num_addons))
+            
+            sub_start = generate_random_date(join_date, date.today())
+            subscriptions_to_create.append((member_id, my_products, sub_start))
 
-            # ----------------------------------------------------
-            # [E] 고객 필수 정보(Customer Required Info) 설정
-            # DDL: role = 'CUSTOMER' 이면 폰, 생일, 성별, 주소, 멤버십 모두 NOT NULL
-            # ----------------------------------------------------
-            address_id = ''
-            encrypted_phone = ''
-            birth_date = ''
-            gender = ''
-            membership = ''
-            
-            if role == 'CUSTOMER':
-                address_id = random.randint(1, num_addresses)
-                
-                while True:
-                    raw_phone = f"010-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}"
-                    if raw_phone not in used_phones:
-                        used_phones.add(raw_phone)
-                        break
-                encrypted_phone = encrypt_aes(raw_phone)
-                
-                birth_date = generate_random_date(date(1960, 1, 1), date(2010, 12, 31))
-                gender = random.choice(['M', 'F'])
-                membership = random.choices(['VVIP', 'VIP', 'GOLD', 'BASIC'], weights=[5, 10, 35, 50], k=1)[0]
-                
-                # 고객인 경우에만 요금제(구독) 생성 후보에 추가
-                my_products = []
-                my_products.append(random.choice(MOBILE_IDS)) # 모바일 1개 필수
-                if random.random() < 0.2: my_products.append(random.choice(TAB_WATCH_IDS))
-                if random.random() < 0.2: my_products.append(random.choice(IPTV_IDS))
-                if random.random() < 0.2: my_products.append(random.choice(INTERNET_IDS))
-                num_addons = random.randint(0, 4)
-                my_products.extend(random.sample(ADDON_IDS, num_addons))
-                
-                sub_start = generate_random_date(join_date, date.today())
-                subscriptions_to_create.append((member_id, my_products, sub_start))
-
-            # ----------------------------------------------------
             # CSV 쓰기
-            # ----------------------------------------------------
             writer.writerow([
                 address_id, provider_id, email, hashed_password, 
                 encrypted_name, encrypted_phone, birth_date, gender,
