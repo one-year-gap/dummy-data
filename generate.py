@@ -25,7 +25,7 @@ def encrypt_aes(raw_text):
 DEFAULT_PASSWORD_HASH = bcrypt.hashpw(b"1234", bcrypt.gensalt()).decode('utf-8')
 
 # --- 설정 및 상수 ---
-SIZES = [10, 100, 10000, 50000, 100000]
+SIZES = [10, 100, 1000, 10000, 50000, 100000]
 OUTPUT_DIR = "dummy_data"
 
 # 이름 생성을 위한 한국인 성/이름 풀
@@ -105,16 +105,22 @@ def run_generation(target_users):
     # 1. 주소 데이터 생성 (가족 공유를 위해 회원 수의 80% 생성)
     num_addresses = max(1, int(target_users * 0.8))
     addresses = []
+    seen_address_key = set()  # (province, city, street_address) 유니크 제약 준수
     print(" - 주소 데이터 생성 중...")
     with open(os.path.join(dir_path, 'address.csv'), 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['address_id', 'province', 'city', 'street_address', 'postal_code', 'created_at', 'updated_at'])
         
         for i in range(1, num_addresses + 1):
-            prov = random.choice(list(ADDRESS_POOL.keys()))
-            city = random.choice(list(ADDRESS_POOL[prov].keys()))
-            street_base = random.choice(ADDRESS_POOL[prov][city])
-            street = f"{street_base} {random.randint(1, 150)}길 {random.randint(1, 99)}"
+            while True:
+                prov = random.choice(list(ADDRESS_POOL.keys()))
+                city = random.choice(list(ADDRESS_POOL[prov].keys()))
+                street_base = random.choice(ADDRESS_POOL[prov][city])
+                street = f"{street_base} {random.randint(1, 150)}길 {random.randint(1, 99)}"
+                key = (prov, city, street)
+                if key not in seen_address_key:
+                    seen_address_key.add(key)
+                    break
             postal = f"{random.randint(10000, 69999)}"
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
