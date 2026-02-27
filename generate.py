@@ -208,7 +208,7 @@ def run_generation(target_users):
                 
                 birth_date = generate_random_date(date(1960, 1, 1), date(2010, 12, 31))
                 gender = random.choice(['M', 'F'])
-                membership = random.choices(['VVIP', 'VIP', 'GOLD', 'BASIC'], weights=[5, 10, 35, 50], k=1)[0]
+                membership = random.choices(['VVIP', 'VIP', 'GOLD'], weights=[10, 20, 70], k=1)[0]
                 
                 # 고객인 경우에만 요금제(구독) 생성 후보에 추가
                 my_products = []
