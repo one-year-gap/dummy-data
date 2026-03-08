@@ -53,8 +53,8 @@ ADDRESS_POOL = {
     '제주특별자치도': {'제주시': ['노연로', '도령로', '연북로'], '서귀포시': ['일주동로', '중앙로']}
 }
 
-# 상품 ID 범위
-MOBILE_IDS = list(range(1, 51))
+# 상품 ID 범위 (단, 삭제된 28번 요금제는 제외)
+MOBILE_IDS = [i for i in range(1, 51) if i != 28]
 TAB_WATCH_IDS = list(range(51, 60))
 IPTV_IDS = list(range(60, 66))
 INTERNET_IDS = list(range(66, 75))
