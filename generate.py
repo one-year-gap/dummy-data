@@ -389,6 +389,12 @@ def run_generation(target_users):
             start_date_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
             start_ym = start_date.strftime('%Y%m')
             
+            # 탈퇴일 뽑아두기 
+            member_deleted_date = ""
+            if member_status == 'DELETED':
+                random_end_date = generate_random_date(start_date, datetime.now())
+                member_deleted_date = random_end_date.strftime('%Y-%m-%d %H:%M:%S')
+
             for p_id in p_ids:
                 # 3-1. 구독 데이터 작성
 
@@ -397,9 +403,7 @@ def run_generation(target_users):
                 end_date_str = ''
                 if member_status == 'DELETED':
                     sub_is_active = False
-                    # 가입일(start_date)부터 오늘(datetime.now()) 사이의 랜덤 날짜 생성
-                    random_end_date = generate_random_date(start_date, datetime.now())
-                    end_date_str = random_end_date.strftime('%Y-%m-%d %H:%M:%S')
+                    end_date_str = member_deleted_date # 아까 뽑아둔 동일한 탈퇴일을 모든 상품에 일괄 적용
 
                 # 약정 로직
                 contract_months_val = ''
