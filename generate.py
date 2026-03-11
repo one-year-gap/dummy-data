@@ -397,7 +397,9 @@ def run_generation(target_users):
                 end_date_str = ''
                 if member_status == 'DELETED':
                     sub_is_active = False
-                    end_date_str = now_str # 탈퇴일을 편의상 데이터 생성일(오늘)로 세팅
+                    # 가입일(start_date)부터 오늘(datetime.now()) 사이의 랜덤 날짜 생성
+                    random_end_date = generate_random_date(start_date, datetime.now())
+                    end_date_str = random_end_date.strftime('%Y-%m-%d %H:%M:%S')
 
                 # 약정 로직
                 contract_months_val = ''
