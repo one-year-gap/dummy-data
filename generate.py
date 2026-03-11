@@ -392,7 +392,7 @@ def run_generation(target_users):
             # 탈퇴일 뽑아두기 
             member_deleted_date = ""
             if member_status == 'DELETED':
-                random_end_date = generate_random_date(start_date, datetime.now())
+                random_end_date = generate_random_date(start_date, date.today())
                 member_deleted_date = random_end_date.strftime('%Y-%m-%d %H:%M:%S')
 
             for p_id in p_ids:
